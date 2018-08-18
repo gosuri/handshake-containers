@@ -1,10 +1,47 @@
 # handshake-containers
 
-handshake-containers contains docker and kubernetes configuration files for handshake binaries `hsd` and `hnsd` and deploying them on a kubernetes cluster
+handshake-containers contains docker and kubernetes configuration files for handshake binaries `hsd` and `hnsd` and deploying them on a kubernetes cluster. I wrote this to deploy handshake testnet on the [Akash TestNet](http://akash.network), currently running at:
 
-## Usage
 
-### hsd
+```
+Authoritative Servers
+=====================
+147.75.100.181 (Amsterdam)  
+147.75.101.29  (Amsterdam) 
+147.75.66.225  (New Jersey) 
+147.75.199.23  (New Jersey)
+147.75.70.213  (San Jose)
+147.75.201.51  (San Jose)
+147.75.92.159  (Tokyo)
+147.75.93.187  (Tokyo)
+
+Recursive Servers
+=================
+147.75.100.147 (Amsterdam)
+147.75.32.169  (Amsterdam)
+147.75.74.41   (New Jersey)
+147.75.199.1   (New Jersey)
+147.75.201.9   (San Jose)
+147.75.201.45  (San Jose)
+147.75.93.181  (Tokyo)
+147.75.93.185  (Tokyo)
+```
+
+Verify using dig for any of the IPs above:
+
+```
+$ dig @147.75.100.181 com NS
+$ dig @147.75.100.147 google.com A +short
+```
+
+To check all the servers are responding, run the below:
+
+```
+$ curl -s https://raw.githubusercontent.com/gosuri/handshake-docker/master/scripts/test-akash | bash
+
+```
+
+## hsd
 
 [hsd](https://github.com/handshake-org/hsd) is handshake daemon & full node, an implementation of the [handshake](https://handshake.org/) protocol.
 
@@ -53,7 +90,7 @@ To start handshake recursive server on port `5302` locally execute the below:
 $ docker run --rm -it -p 5302:53/udp quay.io/ovrclk/hsd --rs-host 0.0.0.0 --rs-port 53
 ```
 
-Alternatively, you could also use `make runrs` if you have this repo cloned locally.
+Alternatively, you could also use `make hsd.runrs` if you have this repo cloned locally.
 
 Verify using using dig:
 
@@ -68,18 +105,25 @@ $ dig @localhost -p 5302 +short google.com
 173.194.175.138
 ```
 
-### Building
+### Building locally
 
 ```
-$ cd hsd
-$ make build
+$ make hsd.build
 ```
 
-Note: The hsd container will be tagged as `quay.io/ovrclk/hsd`, you can change that by running `make build IMAGE=whatever` or update in the `Makefile`
+Note: The hsd container will be tagged as `quay.io/ovrclk/hsd`, you can change that by running `make build HSD_IMAGE=whatever` or update in the `Makefile`
 
-### Deploying on a Kubernetes cluster
+## Deploying on a Kubernetes cluster
 
-#### Create a config map
+### Create config map for hsd
+
+Create a config map from the provided config:
+
+```sh
+$ kubectl create -f https://raw.githubusercontent.com/gosuri/handshake-docker/master/hsd/k8s/config.yml
+```
+
+Alternatively, you could also create the config map from literal
 
 ```sh
 $  kubectl create configmap hsd-config \
@@ -89,9 +133,11 @@ $  kubectl create configmap hsd-config \
   --from-literal=hsd.rsport=53         \
 ```
 
-#### Create Deployments
+### Create Deployments
 
 #### Authoritative Server
+
+Create a kubernetes deployment by running:
 
 ```sh
 $ kubectl create -f https://raw.githubusercontent.com/gosuri/handshake-docker/master/hsd/k8s/deploy-ns.yml
@@ -99,8 +145,9 @@ $ kubectl create -f https://raw.githubusercontent.com/gosuri/handshake-docker/ma
 
 #### Recursive Server
 
+Create a kubernetes deployment by running:
 ```sh
-$ kubectl create -f https://raw.githubusercontent.com/gosuri/handshake-docker/master/hsd/k8s/deploy-ns.yml
+$ kubectl create -f https://raw.githubusercontent.com/gosuri/handshake-docker/master/hsd/k8s/deploy-rs.yml
 
 ```
 
@@ -120,7 +167,7 @@ worker.sjc.ix   Ready     <none>    2d        v1.11.2
 
 We'll use `master.sjc.ix` for authoritative and `worker.sjc.ix` for recursive.
 
-#### Authoritative Server
+##### Authoritative Server
 
 Label the node for authoritative server, the below examples uses `master.sjc.ix` for authoritative server, replace `master.sjc.ix` with your node name
 
@@ -135,7 +182,7 @@ Create the deployment
 $ kubectl create -f https://raw.githubusercontent.com/gosuri/handshake-docker/master/hsd/k8s/deploy-ns-nodesel.yml
 ```
 
-#### Recursive Server
+##### Recursive Server
 
 Label the node for recursive server, the below examples uses `worker.sjc.ix` for recursive server, replace `worker.sjc.ix` with your node name
 
@@ -148,4 +195,53 @@ Create the deployment
 
 ```sh
 $ kubectl create -f https://raw.githubusercontent.com/gosuri/handshake-docker/master/hsd/k8s/deploy-rs-nodesel.yml
+```
+
+## hnsd
+
+[hnsd](https://github.com/handshake-org/hnsd) is the handshake light resolver.
+
+## Running
+
+To start handshake SPV resolve on port `5302` locally execute the below. Alternatively, you could also use `make hnsd.run` if you have this repo cloned locally.
+
+```sh
+$ docker run --rm -it -p 5302:53/udp quay.io/ovrclk/hnsd --rs-host 0.0.0.0:53 --pool-size 4
+```
+
+Verify using using dig:
+
+```sh
+$ dig @localhost -p 5302 +short google.com
+
+173.194.175.100
+173.194.175.139
+173.194.175.102
+173.194.175.113
+173.194.175.101
+173.194.175.138
+```
+
+## Building locally
+
+```
+$ make hnsd.build
+```
+
+## Deploying on a Kubernetes cluster
+
+### Create config map for hnsd
+
+Create a config map from the provided config:
+
+```sh
+$ kubectl apply -f https://raw.githubusercontent.com/gosuri/handshake-docker/master/hnsd/k8s/config.yml
+```
+
+### Create Deployment
+
+Create a kubernetes deployment by running:
+
+```sh
+$ kubectl apply -f https://raw.githubusercontent.com/gosuri/handshake-docker/master/hnsd/k8s/deploy.yml
 ```

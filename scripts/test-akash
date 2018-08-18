@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+IFS=$'\n'
+
+nsnodes="$(curl -s https://raw.githubusercontent.com/gosuri/handshake-docker/master/AUTHORITATIVE)"
+rsnodes="$(curl -s https://raw.githubusercontent.com/gosuri/handshake-docker/master/RECURSIVE)"
+
+for n in ${nsnodes}; do
+  echo "[check ns] $n"
+  dig @$(echo $n | awk '{print $1}') com NS > /dev/null || echo "[failed] $n"
+done
+
+for n in ${rsnodes}; do
+  echo "[check rs] $n"
+  dig @$(echo $n | awk '{print $1}') google.com +short > /dev/null || echo "[failed] $n"
+done

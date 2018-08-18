@@ -1,0 +1,41 @@
+---
+apiVersion: "extensions/v1beta1"
+kind: "Deployment"
+metadata:
+  name: "hnsd"
+  labels:
+    app: "hnsd"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: "hnsd"
+  template:
+    metadata:
+      labels:
+        app: "hnsd"
+    spec:
+      hostNetwork: true
+      containers:
+      - name: "hnsd"
+        image: "quay.io/ovrclk/hnsd"
+        ports:
+          - name: udp
+            containerPort: 53
+        command:
+          - "/run.sh"
+          - "--rs-host"
+          - "$(HNSD_RS_HOST)"
+          - "--pool-size"
+          - "$(HNSD_POOL_SIZE)"
+        env:
+          - name: HNSD_RS_HOST
+            valueFrom:
+              configMapKeyRef:
+                name: hnsd-config
+                key: hnsd.rshost
+          - name: HNSD_POOL_SIZE
+            valueFrom:
+              configMapKeyRef:
+                name: hnsd-config
+                key: hnsd.poolsize

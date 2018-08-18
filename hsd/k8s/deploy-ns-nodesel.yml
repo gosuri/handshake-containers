@@ -1,0 +1,43 @@
+---
+apiVersion: "extensions/v1beta1"
+kind: "Deployment"
+metadata:
+  name: "hsd-ns"
+  labels:
+    app: "hsd-ns"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: "hsd-ns"
+  template:
+    metadata:
+      labels:
+        app: "hsd-ns"
+    spec:
+      nodeSelector:
+        hsd_role: "ns"
+      hostNetwork: true
+      containers:
+      - name: "hsd-ns"
+        image: "quay.io/ovrclk/hsd"
+        ports:
+          - name: udp
+            containerPort: 53
+        command:
+          - "/run.sh"
+          - "--ns-host"
+          - "$(HSD_NS_HOST)"
+          - "--ns-port"
+          - "$(HSD_NS_PORT)"
+        env:
+          - name: HSD_NS_HOST
+            valueFrom:
+              configMapKeyRef:
+                name: hsd-config
+                key: hsd.nshost
+          - name: HSD_NS_PORT
+            valueFrom:
+              configMapKeyRef:
+                name: hsd-config
+                key: hsd.nsport

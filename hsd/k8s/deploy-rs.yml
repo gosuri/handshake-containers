@@ -1,0 +1,41 @@
+---
+apiVersion: "extensions/v1beta1"
+kind: "Deployment"
+metadata:
+  name: "hsd-rs"
+  labels:
+    app: "hsd-rs"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: "hsd-rs"
+  template:
+    metadata:
+      labels:
+        app: "hsd-rs"
+    spec:
+      hostNetwork: true
+      containers:
+      - name: "hsd-rs"
+        image: "quay.io/ovrclk/hsd"
+        ports:
+          - name: udp
+            containerPort: 53
+        command:
+          - "/run.sh"
+          - "--rs-host"
+          - "$(HSD_RS_HOST)"
+          - "--rs-port"
+          - "$(HSD_RS_PORT)"
+        env:
+          - name: HSD_RS_HOST
+            valueFrom:
+              configMapKeyRef:
+                name: hsd-config
+                key: hsd.rshost
+          - name: HSD_RS_PORT
+            valueFrom:
+              configMapKeyRef:
+                name: hsd-config
+                key: hsd.rsport

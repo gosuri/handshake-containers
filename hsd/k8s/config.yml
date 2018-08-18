@@ -1,0 +1,10 @@
+---
+apiVersion: "v1"
+kind: ConfigMap
+metadata:
+  name: "hsd-config"
+data:
+  hsd.nshost: 0.0.0.0
+  hsd.nsport: "53"
+  hsd.rshost: 0.0.0.0
+  hsd.rsport: "53"
